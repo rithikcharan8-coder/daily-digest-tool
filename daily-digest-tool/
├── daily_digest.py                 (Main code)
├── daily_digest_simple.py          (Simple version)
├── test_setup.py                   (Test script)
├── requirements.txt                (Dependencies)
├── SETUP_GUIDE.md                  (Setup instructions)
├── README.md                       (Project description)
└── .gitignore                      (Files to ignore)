@@ -1,0 +1,8 @@
+daily-digest-tool/
+├── daily_digest.py                 (Main code)
+├── daily_digest_simple.py          (Simple version)
+├── test_setup.py                   (Test script)
+├── requirements.txt                (Dependencies)
+├── SETUP_GUIDE.md                  (Setup instructions)
+├── README.md                       (Project description)
+└── .gitignore                      (Files to ignore)
