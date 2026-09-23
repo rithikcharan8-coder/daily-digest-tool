@@ -1,0 +1,325 @@
+import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+
+# ==================== API Keys & Configuration ====================
+NEWS_API_KEY = "YOUR_NEWS_API_KEY"  # Get from newsapi.org
+WEATHER_API_KEY = "YOUR_WEATHER_API_KEY"  # Get from openweathermap.org
+CITY = "New Delhi"  # Change to your city
+LAT, LON = 28.6139, 77.2090  # Delhi coordinates
+
+# Email Configuration
+SENDER_EMAIL = "your_email@gmail.com"
+SENDER_PASSWORD = "your_app_password"  # Use Gmail App Password, not regular password
+RECIPIENT_EMAIL = "recipient@gmail.com"
+
+# ==================== API Functions ====================
+
+def get_news_headlines(limit=5):
+    """Fetch top news headlines from NewsAPI"""
+    try:
+        url = "https://newsapi.org/v2/top-headlines"
+        params = {
+            "country": "in",  # India
+            "apiKey": NEWS_API_KEY,
+            "pageSize": limit
+        }
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        articles = response.json().get("articles", [])
+        headlines = []
+        for article in articles:
+            headlines.append({
+                "title": article.get("title", "N/A"),
+                "description": article.get("description", "N/A"),
+                "url": article.get("url", "#"),
+                "source": article.get("source", {}).get("name", "Unknown")
+            })
+        return headlines
+    except Exception as e:
+        print(f"Error fetching news: {e}")
+        return []
+
+def get_weather(city, api_key):
+    """Fetch weather data using OpenWeatherMap API"""
+    try:
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {
+            "q": city,
+            "appid": api_key,
+            "units": "metric"
+        }
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        weather = {
+            "city": data.get("name"),
+            "temperature": data.get("main", {}).get("temp"),
+            "condition": data.get("weather", [{}])[0].get("main"),
+            "humidity": data.get("main", {}).get("humidity"),
+            "wind_speed": data.get("wind", {}).get("speed")
+        }
+        return weather
+    except Exception as e:
+        print(f"Error fetching weather: {e}")
+        return {}
+
+def get_motivational_quote():
+    """Fetch a motivational quote from ZenQuotes API"""
+    try:
+        url = "https://zenquotes.io/api/random"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()[0]
+        quote = {
+            "text": data.get("q"),
+            "author": data.get("a", "Unknown").replace("-", "").strip()
+        }
+        return quote
+    except Exception as e:
+        print(f"Error fetching quote: {e}")
+        return {"text": "Every day is a new opportunity to learn and grow!", "author": "Unknown"}
+
+# ==================== HTML Email Template ====================
+
+def create_email_html(news, weather, quote):
+    """Create a clean HTML email template"""
+    
+    news_html = ""
+    for i, article in enumerate(news, 1):
+        news_html += f"""
+        <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
+            <h4 style="color: #2c3e50; margin: 0 0 8px 0;">
+                {i}. {article['title']}
+            </h4>
+            <p style="color: #666; font-size: 14px; margin: 5px 0;">
+                {article['description']}
+            </p>
+            <p style="margin: 8px 0 0 0;">
+                <a href="{article['url']}" style="color: #3498db; text-decoration: none; font-size: 13px;">
+                    Read more →
+                </a>
+                <span style="color: #999; font-size: 12px; margin-left: 10px;">
+                    Source: {article['source']}
+                </span>
+            </p>
+        </div>
+        """
+    
+    weather_condition_emoji = {
+        "Clear": "☀️",
+        "Clouds": "☁️",
+        "Rain": "🌧️",
+        "Drizzle": "🌦️",
+        "Thunderstorm": "⛈️",
+        "Snow": "❄️",
+        "Mist": "🌫️"
+    }
+    
+    emoji = weather_condition_emoji.get(weather.get("condition"), "🌤️")
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                background-color: #f5f5f5;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 3px solid #3498db;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }}
+            .header h1 {{
+                color: #2c3e50;
+                margin: 0 0 5px 0;
+                font-size: 28px;
+            }}
+            .header p {{
+                color: #7f8c8d;
+                margin: 0;
+                font-size: 14px;
+            }}
+            .section {{
+                margin-bottom: 30px;
+            }}
+            .section-title {{
+                color: #2c3e50;
+                font-size: 20px;
+                border-left: 4px solid #3498db;
+                padding-left: 15px;
+                margin-bottom: 15px;
+            }}
+            .weather-box {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+            }}
+            .weather-box h3 {{
+                margin: 0 0 10px 0;
+            }}
+            .weather-temp {{
+                font-size: 36px;
+                font-weight: bold;
+                margin: 10px 0;
+            }}
+            .weather-details {{
+                font-size: 14px;
+                margin-top: 10px;
+            }}
+            .quote {{
+                background-color: #ecf0f1;
+                border-left: 4px solid #e74c3c;
+                padding: 20px;
+                border-radius: 4px;
+                font-style: italic;
+                color: #2c3e50;
+            }}
+            .quote-author {{
+                text-align: right;
+                margin-top: 10px;
+                color: #7f8c8d;
+                font-size: 14px;
+            }}
+            .footer {{
+                text-align: center;
+                color: #7f8c8d;
+                font-size: 12px;
+                border-top: 1px solid #ddd;
+                padding-top: 20px;
+                margin-top: 30px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <h1>📰 Daily Digest</h1>
+                <p>{datetime.now().strftime('%A, %B %d, %Y')}</p>
+            </div>
+            
+            <!-- Weather Section -->
+            <div class="section">
+                <div class="section-title">🌍 Weather Update</div>
+                <div class="weather-box">
+                    <h3>{emoji} {weather.get('city', 'Unknown')}</h3>
+                    <div class="weather-temp">{weather.get('temperature', 'N/A')}°C</div>
+                    <div>{weather.get('condition', 'N/A')}</div>
+                    <div class="weather-details">
+                        Humidity: {weather.get('humidity', 'N/A')}% | Wind: {weather.get('wind_speed', 'N/A')} m/s
+                    </div>
+                </div>
+            </div>
+            
+            <!-- News Section -->
+            <div class="section">
+                <div class="section-title">📰 Top News Headlines</div>
+                {news_html}
+            </div>
+            
+            <!-- Quote Section -->
+            <div class="section">
+                <div class="section-title">💡 Motivation</div>
+                <div class="quote">
+                    "{quote.get('text', 'N/A')}"
+                    <div class="quote-author">— {quote.get('author', 'Unknown')}</div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+                <p>This is an automated daily digest. Have a great day! 🚀</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html_content
+
+# ==================== Send Email Function ====================
+
+def send_email(sender_email, sender_password, recipient_email, subject, html_content):
+    """Send HTML email using SMTP"""
+    try:
+        # Create message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = sender_email
+        message["To"] = recipient_email
+        
+        # Attach HTML content
+        html_part = MIMEText(html_content, "html")
+        message.attach(html_part)
+        
+        # Send via Gmail SMTP
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message.as_string())
+        
+        print("✅ Email sent successfully!")
+        return True
+    
+    except smtplib.SMTPAuthenticationError:
+        print("❌ Authentication failed. Check email and password.")
+        return False
+    except Exception as e:
+        print(f"❌ Error sending email: {e}")
+        return False
+
+# ==================== Main Function ====================
+
+def main():
+    """Run the daily digest tool"""
+    print("🚀 Starting Daily Digest Tool...")
+    
+    # Fetch data
+    print("📰 Fetching news headlines...")
+    news = get_news_headlines(limit=5)
+    
+    print("🌍 Fetching weather data...")
+    weather = get_weather(CITY, WEATHER_API_KEY)
+    
+    print("💡 Fetching motivational quote...")
+    quote = get_motivational_quote()
+    
+    # Create HTML email
+    print("📧 Creating email template...")
+    html_content = create_email_html(news, weather, quote)
+    
+    # Send email
+    print("Sending email...")
+    send_email(
+        SENDER_EMAIL,
+        SENDER_PASSWORD,
+        RECIPIENT_EMAIL,
+        f"Daily Digest - {datetime.now().strftime('%Y-%m-%d')}",
+        html_content
+    )
+    
+    print("✨ Done!")
+
+if __name__ == "__main__":
+    main()
