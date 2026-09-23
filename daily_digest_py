@@ -1,0 +1,166 @@
+"""
+Simple Daily Digest Tool - Beginner Friendly Version
+Just 3 things to configure and you're good to go!
+"""
+
+import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+
+# ⚙️ CONFIGURE THESE 3 THINGS:
+NEWS_API_KEY = "YOUR_NEWS_API_KEY"  # Get from newsapi.org (free)
+SENDER_EMAIL = "your_email@gmail.com"
+SENDER_PASSWORD = "your_gmail_app_password"  # Use App Password (not regular password)
+RECIPIENT_EMAIL = "where_to_send@gmail.com"
+
+# --------------------------------------------------
+
+def get_news():
+    """Get top 5 news headlines"""
+    try:
+        url = "https://newsapi.org/v2/top-headlines"
+        response = requests.get(url, params={
+            "country": "in",
+            "apiKey": NEWS_API_KEY,
+            "pageSize": 5
+        })
+        return response.json().get("articles", [])
+    except:
+        return []
+
+def get_weather():
+    """Get weather for New Delhi (you can change city)"""
+    try:
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        response = requests.get(url, params={
+            "q": "New Delhi",
+            "appid": "b6fd4ad142f519bff768e0c4bcf910d3",  # Free tier key
+            "units": "metric"
+        })
+        data = response.json()
+        return {
+            "temp": data["main"]["temp"],
+            "condition": data["weather"][0]["main"],
+            "city": data["name"]
+        }
+    except:
+        return {"temp": "N/A", "condition": "N/A", "city": "N/A"}
+
+def get_quote():
+    """Get motivational quote"""
+    try:
+        response = requests.get("https://zenquotes.io/api/random")
+        data = response.json()[0]
+        return data.get("q"), data.get("a", "Unknown")
+    except:
+        return "Every day is a new opportunity!", "Unknown"
+
+def create_email(news, weather, quote_text, quote_author):
+    """Create nice HTML email"""
+    
+    news_html = ""
+    for i, article in enumerate(news, 1):
+        news_html += f"""
+        <tr style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+            <td style="padding: 10px; vertical-align: top; width: 30px; font-weight: bold; color: #3498db;">{i}.</td>
+            <td style="padding: 10px;">
+                <h4 style="margin: 0 0 5px 0; color: #2c3e50;">{article['title']}</h4>
+                <p style="margin: 0 0 5px 0; color: #666; font-size: 13px;">{article['description']}</p>
+                <a href="{article['url']}" style="color: #3498db; font-size: 12px; text-decoration: none;">Read more →</a>
+            </td>
+        </tr>
+        """
+    
+    html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px;">
+            
+            <!-- Header -->
+            <div style="text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="color: #2c3e50; margin: 0;">📰 Daily Digest</h1>
+                <p style="color: #7f8c8d; margin: 5px 0 0 0;">{datetime.now().strftime('%A, %B %d, %Y')}</p>
+            </div>
+            
+            <!-- Weather -->
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #2c3e50; border-left: 4px solid #3498db; padding-left: 10px;">🌍 Weather</h2>
+                <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3 style="margin: 0;">{weather['city']}</h3>
+                    <p style="font-size: 40px; margin: 10px 0;">{weather['temp']}°C</p>
+                    <p style="margin: 0;">{weather['condition']}</p>
+                </div>
+            </div>
+            
+            <!-- News -->
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #2c3e50; border-left: 4px solid #3498db; padding-left: 10px;">📰 Top Headlines</h2>
+                <table style="width: 100%;">
+                    {news_html}
+                </table>
+            </div>
+            
+            <!-- Quote -->
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #2c3e50; border-left: 4px solid #3498db; padding-left: 10px;">💡 Quote of the Day</h2>
+                <div style="background: #ecf0f1; border-left: 4px solid #e74c3c; padding: 20px; border-radius: 4px;">
+                    <p style="font-style: italic; color: #2c3e50; margin: 0 0 10px 0;">"{quote_text}"</p>
+                    <p style="color: #7f8c8d; margin: 0; text-align: right;">— {quote_author}</p>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="text-align: center; color: #7f8c8d; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px;">
+                <p>This is an automated daily digest. Have a great day! 🚀</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html
+
+def send_email(html_content):
+    """Send the email"""
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"Daily Digest - {datetime.now().strftime('%Y-%m-%d')}"
+        msg["From"] = SENDER_EMAIL
+        msg["To"] = RECIPIENT_EMAIL
+        msg.attach(MIMEText(html_content, "html"))
+        
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, RECIPIENT_EMAIL, msg.as_string())
+        
+        print("✅ Email sent successfully!")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
+        return False
+
+# --------------------------------------------------
+# RUN IT!
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    print("🚀 Creating your daily digest...")
+    
+    print("📰 Fetching news...")
+    news = get_news()
+    
+    print("🌍 Fetching weather...")
+    weather = get_weather()
+    
+    print("💡 Fetching quote...")
+    quote_text, quote_author = get_quote()
+    
+    print("📧 Creating email...")
+    html = create_email(news, weather, quote_text, quote_author)
+    
+    print("Sending email...")
+    send_email(html)
+    
+    print("✨ Done!")
