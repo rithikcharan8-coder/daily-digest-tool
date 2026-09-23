@@ -1,0 +1,191 @@
+# 📰 Daily Digest Tool - Setup Guide
+
+## Step 1: Get API Keys
+
+### 1.1 NewsAPI (for news headlines)
+- Visit: https://newsapi.org/
+- Sign up for free account
+- Go to Dashboard and copy your API key
+- Paste it in `daily_digest.py` line: `NEWS_API_KEY = "YOUR_NEWS_API_KEY"`
+
+### 1.2 OpenWeatherMap (for weather data)
+- Visit: https://openweathermap.org/api
+- Sign up for free account
+- Go to API keys section and copy your key
+- Paste it in `daily_digest.py` line: `WEATHER_API_KEY = "YOUR_WEATHER_API_KEY"`
+
+### 1.3 ZenQuotes (for motivational quotes)
+- **Free!** No API key needed - we use the public endpoint
+- Already configured in the code
+
+---
+
+## Step 2: Configure Gmail for Email Sending
+
+### 2.1 Enable 2-Factor Authentication
+- Go to myaccount.google.com
+- Security → Enable 2-Step Verification
+
+### 2.2 Generate App Password
+- Go to myaccount.google.com/apppasswords
+- Select "Mail" and "Windows Computer" (or your device)
+- Google will generate a 16-character password
+- Copy this password
+
+### 2.3 Update Email Configuration
+In `daily_digest.py`, update:
+```python
+SENDER_EMAIL = "your_email@gmail.com"
+SENDER_PASSWORD = "your_16_char_app_password"  # From step 2.2
+RECIPIENT_EMAIL = "where_to_send@gmail.com"
+```
+
+---
+
+## Step 3: Install Required Libraries
+
+```bash
+pip install requests
+```
+
+That's it! `smtplib` and `email` are built-in Python modules.
+
+---
+
+## Step 4: Configure City & Location
+
+In `daily_digest.py`, update:
+```python
+CITY = "New Delhi"  # Change to your city
+LAT, LON = 28.6139, 77.2090  # Your city coordinates
+```
+
+Find coordinates for your city:
+- Search "city name coordinates" on Google
+- Or use: https://www.latlong.net/
+
+---
+
+## Step 5: Run the Script
+
+```bash
+python daily_digest.py
+```
+
+You should see:
+```
+🚀 Starting Daily Digest Tool...
+📰 Fetching news headlines...
+🌍 Fetching weather data...
+💡 Fetching motivational quote...
+📧 Creating email template...
+Sending email...
+✅ Email sent successfully!
+✨ Done!
+```
+
+---
+
+## Step 6 (Optional): Schedule Daily Execution
+
+### On Linux/Mac (using cron):
+```bash
+crontab -e
+```
+Add this line to run daily at 8 AM:
+```
+0 8 * * * /usr/bin/python3 /path/to/daily_digest.py
+```
+
+### On Windows (using Task Scheduler):
+1. Search for "Task Scheduler"
+2. Create Basic Task
+3. Set trigger: Daily at 8:00 AM
+4. Action: Start a program → python.exe
+5. Arguments: `C:\path\to\daily_digest.py`
+
+---
+
+## Troubleshooting
+
+**Problem:** "API Key not valid"
+- Check if you copied the full key without extra spaces
+- Verify the key is for the correct service
+
+**Problem:** "Authentication failed for email"
+- Make sure you used App Password (not regular Gmail password)
+- Enable 2-Step Verification first
+- Try creating a new App Password
+
+**Problem:** "Connection timeout"
+- Check internet connection
+- Try again - APIs might be temporarily down
+
+**Problem:** "No module named 'requests'"
+- Run: `pip install requests`
+
+---
+
+## Project Structure
+
+```
+daily_digest.py
+├── API Functions
+│   ├── get_news_headlines()      → Fetch from NewsAPI
+│   ├── get_weather()              → Fetch from OpenWeatherMap
+│   └── get_motivational_quote()   → Fetch from ZenQuotes
+├── Email Functions
+│   ├── create_email_html()        → Build HTML template
+│   └── send_email()               → Send via Gmail SMTP
+└── main()                         → Orchestrate everything
+```
+
+---
+
+## What the Email Looks Like
+
+The email will have:
+- ✅ Clean, professional design
+- ✅ Top news headlines (5 articles) with links
+- ✅ Current weather for your city
+- ✅ Daily motivational quote
+- ✅ Date and time
+- ✅ Responsive layout (works on mobile too)
+
+---
+
+## Important Notes
+
+1. **Free Tier Limitations:**
+   - NewsAPI: 100 requests/day
+   - OpenWeatherMap: 60 calls/min
+   - ZenQuotes: No limit
+
+2. **Gmail Limitations:**
+   - Can send ~500 emails/day
+   - After 500, you need SMTP relay service
+
+3. **Security:**
+   - Never commit credentials to GitHub
+   - Use environment variables for production:
+     ```python
+     import os
+     SENDER_EMAIL = os.getenv("GMAIL_EMAIL")
+     SENDER_PASSWORD = os.getenv("GMAIL_PASSWORD")
+     ```
+
+---
+
+## Next Level Improvements
+
+- Store emails in database
+- Add database to track sent digests
+- Add more news categories
+- Include stock prices
+- Add personalized sections
+- Create a web dashboard
+- Deploy to AWS/Heroku
+
+---
+
+Good luck! 🚀
