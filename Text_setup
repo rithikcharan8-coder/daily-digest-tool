@@ -1,0 +1,97 @@
+"""
+Quick test script to verify all API keys and configurations
+Run this BEFORE running daily_digest.py
+"""
+
+import requests
+import smtplib
+
+# Add your credentials here
+NEWS_API_KEY = "YOUR_NEWS_API_KEY"
+WEATHER_API_KEY = "YOUR_WEATHER_API_KEY"
+SENDER_EMAIL = "your_email@gmail.com"
+SENDER_PASSWORD = "your_gmail_app_password"
+
+print("=" * 50)
+print("📋 DAILY DIGEST SETUP TESTER")
+print("=" * 50)
+
+# Test 1: NewsAPI
+print("\n1️⃣  Testing NewsAPI...")
+if NEWS_API_KEY == "YOUR_NEWS_API_KEY":
+    print("   ❌ API key not configured")
+else:
+    try:
+        response = requests.get("https://newsapi.org/v2/top-headlines", 
+                              params={"country": "in", "apiKey": NEWS_API_KEY})
+        if response.status_code == 200:
+            articles = response.json().get("articles", [])
+            print(f"   ✅ NewsAPI working! ({len(articles)} articles found)")
+        else:
+            print(f"   ❌ NewsAPI error: {response.status_code}")
+            print(f"      {response.json().get('message', 'Unknown error')}")
+    except Exception as e:
+        print(f"   ❌ Connection error: {e}")
+
+# Test 2: OpenWeatherMap
+print("\n2️⃣  Testing OpenWeatherMap...")
+if WEATHER_API_KEY == "YOUR_WEATHER_API_KEY":
+    print("   ❌ API key not configured")
+else:
+    try:
+        response = requests.get("https://api.openweathermap.org/data/2.5/weather",
+                              params={"q": "New Delhi", "appid": WEATHER_API_KEY, "units": "metric"})
+        if response.status_code == 200:
+            data = response.json()
+            temp = data["main"]["temp"]
+            city = data["name"]
+            print(f"   ✅ OpenWeatherMap working! ({city}: {temp}°C)")
+        else:
+            print(f"   ❌ OpenWeatherMap error: {response.status_code}")
+            print(f"      {response.json().get('message', 'Unknown error')}")
+    except Exception as e:
+        print(f"   ❌ Connection error: {e}")
+
+# Test 3: ZenQuotes (no key needed)
+print("\n3️⃣  Testing ZenQuotes...")
+try:
+    response = requests.get("https://zenquotes.io/api/random")
+    if response.status_code == 200:
+        quote = response.json()[0]["q"]
+        print(f"   ✅ ZenQuotes working!")
+        print(f"      Quote: \"{quote[:50]}...\"")
+    else:
+        print(f"   ❌ ZenQuotes error: {response.status_code}")
+except Exception as e:
+    print(f"   ❌ Connection error: {e}")
+
+# Test 4: Gmail SMTP
+print("\n4️⃣  Testing Gmail SMTP...")
+if SENDER_EMAIL == "your_email@gmail.com":
+    print("   ❌ Email not configured")
+elif SENDER_PASSWORD == "your_gmail_app_password":
+    print("   ❌ Password not configured")
+else:
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        print(f"   ✅ Gmail SMTP working! ({SENDER_EMAIL})")
+    except smtplib.SMTPAuthenticationError:
+        print(f"   ❌ Gmail authentication failed")
+        print(f"      - Check if 2-Step Verification is enabled")
+        print(f"      - Check if using App Password (not regular password)")
+        print(f"      - Try creating a new App Password")
+    except Exception as e:
+        print(f"   ❌ Connection error: {e}")
+
+# Summary
+print("\n" + "=" * 50)
+print("📝 SUMMARY")
+print("=" * 50)
+print("\n✅ All tests passed? You're ready to go!")
+print("❌ Some tests failed? Follow the error messages above.\n")
+
+print("Next steps:")
+print("1. Fix any failed tests above")
+print("2. Run: python daily_digest_simple.py")
+print("3. Check your email for the digest!")
